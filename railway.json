@@ -1,0 +1,10 @@
+// railway.json - Railway Configuration
+{
+  "build": {
+    "builder": "nixpacks"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "restartPolicyMaxRetries": 5
+  }
+}

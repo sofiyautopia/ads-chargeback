@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdsCost - Chargeback Engine</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+      background: #F6F8FB;
+      color: #1F2937;
+    }
+    .container { width: 100%; padding: 1.5rem; }
+    .header { margin-bottom: 2rem; }
+    .header h1 { margin: 0 0 1.5rem 0; font-size: 24px; font-weight: 500; color: #1F2937; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; align-items: flex-end; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    .control-group label { font-size: 12px; font-weight: 500; color: #6B7280; text-transform: uppercase; letter-spacing: 0.3px; }
+    .control-group input, .control-group select {
+      padding: 8px 12px;
+      border: 0.5px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      color: #1F2937;
+    }
+    .control-group input:focus, .control-group select:focus {
+      outline: none;
+      border-color: #4F8FF7;
+      box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.1);
+    }
+    .buttons { display: flex; gap: 8px; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 0.5px solid #D1D5DB;
+      background: white;
+      color: #1F2937;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #F3F4F6; border-color: #9CA3AF; }
+    .btn-primary {
+      background: #4F8FF7;
+      color: white;
+      border-color: #4F8FF7;
+    }
+    .btn-primary:hover { background: #3d73d9; border-color: #3d73d9; }
+    .alerts { display: grid; gap: 8px; margin-bottom: 1.5rem; }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: #FEF3C7;
+      border: 0.5px solid #FCD34D;
+      color: #92400E;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .alert-icon { font-size: 14px; font-weight: 600; }
+    .company-panel {
+      background: white;
+      border: 0.5px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    .company-panel.active { display: block; }
+    .company-panel-header { font-size: 15px; font-weight: 500; color: #1F2937; margin-bottom: 1rem; }
+    .company-panel-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label { font-size: 12px; font-weight: 500; color: #6B7280; }
+    .form-field input {
+      padding: 8px 12px;
+      border: 0.5px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      color: #1F2937;
+    }
+    .form-field input:focus {
+      outline: none;
+      border-color: #4F8FF7;
+      box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.1);
+    }
+    .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .checkbox-item input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; }
+    .table-wrapper {
+      background: white;
+      border: 0.5px solid #E5E7EB;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table thead {
+      background: #F9FAFB;
+      border-bottom: 0.5px solid #E5E7EB;
+    }
+    .table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 500;
+      color: #6B7280;
+      white-space: nowrap;
+    }
+    .table td {
+      padding: 12px;
+      border-bottom: 0.5px solid #F3F4F6;
+      color: #1F2937;
+    }
+    .table tbody tr:hover { background: #F9FAFB; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-unassigned {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    .editable-cell { position: relative; }
+    .editable-cell input {
+      width: 60px;
+      padding: 4px 8px;
+      font-size: 13px;
+      text-align: right;
+      border: 0.5px solid #D1D5DB;
+      border-radius: 4px;
+      background: white;
+    }
+    .editable-cell input:focus {
+      outline: none;
+      border-color: #4F8FF7;
+      box-shadow: 0 0 0 2px rgba(79, 143, 247, 0.1);
+    }
+    .editable-cell.edited { background: rgba(79, 143, 247, 0.05); }
+    .currency {
+      text-align: right;
+      font-weight: 500;
+      color: #1F2937;
+      font-family: 'Courier New', monospace;
+    }
+    .summary-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .summary-card {
+      background: #F3F4F6;
+      border: 0.5px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .summary-card-label { font-size: 12px; color: #6B7280; margin-bottom: 8px; font-weight: 500; }
+    .summary-card-value { font-size: 22px; font-weight: 500; color: #1F2937; font-family: 'Courier New', monospace; }
+    .actions { display: flex; gap: 12px; margin-bottom: 2rem; flex-wrap: wrap; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+    .modal-close {
+      float: right;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6B7280;
+      border: none;
+      background: none;
+    }
+    .modal-title { font-size: 18px; font-weight: 500; margin: 0 0 1.5rem 0; color: #1F2937; clear: both; }
+    .modal-section { margin-bottom: 1.5rem; }
+    .modal-label { font-size: 12px; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .modal-value { font-size: 14px; color: #1F2937; margin-bottom: 12px; }
+    .modal-breakdown { display: grid; gap: 8px; margin-bottom: 1.5rem; }
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 0.5px solid #E5E7EB;
+    }
+    .modal-row.total {
+      font-weight: 600;
+      border-bottom: none;
+      margin-top: 8px;
+      font-size: 16px;
+    }
+    .modal-row span:last-child {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+    }
+    .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+    @media (max-width: 1024px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .summary-panel { grid-template-columns: repeat(2, 1fr); }
+    }
+    .settings-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 2000; align-items: center; justify-content: center; }
+    .settings-modal.active { display: flex; }
+    .settings-content { background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .settings-header h2 { margin: 0; font-size: 20px; font-weight: 600; color: #1F2937; }
+    .settings-close { font-size: 24px; cursor: pointer; color: #6B7280; border: none; background: none; }
+    .settings-section { margin-bottom: 2rem; }
+    .settings-section h3 { margin: 0 0 1rem 0; font-size: 14px; font-weight: 600; color: #1F2937; text-transform: uppercase; letter-spacing: 0.5px; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .settings-field { display: flex; flex-direction: column; gap: 6px; }
+    .settings-field label { font-size: 13px; color: #6B7280; font-weight: 500; }
+    .settings-field input { padding: 10px 12px; border: 0.5px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white; color: #1F2937; }
+    .settings-field input:focus { outline: none; border-color: #4F8FF7; box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.1); }
+    .settings-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 0.5px solid #E5E7EB; }
+    @media (max-width: 768px) {
+      .controls { grid-template-columns: 1fr; }
+      .company-panel-controls { grid-template-columns: 1fr; }
+      .summary-panel { grid-template-columns: 1fr; }
+      .actions { flex-direction: column; }
+      .btn { width: 100%; }
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div id="instructionsPanel" style="background: linear-gradient(135deg, #E6F1FB 0%, #F0F9FF 100%); border: 0.5px solid #4F8FF7; border-radius: 12px; padding: 12px 14px; margin-bottom: 1.5rem; display: block;">
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <div style="font-size: 14px; color: #4F8FF7; flex-shrink: 0; margin-top: 1px;">ℹ️</div>
+        <div style="flex: 1; font-size: 11px; color: #4B5563; line-height: 1.5;">
+          <strong style="color: #1F2937;">Setup: </strong><span>Settings (configure rates) → Pick dates → Generate chargeback → Review & adjust → Generate invoices</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem;">
+      <div style="width: 44px; height: 44px; background: #4F8FF7; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white;">₹</div>
+      <div style="flex: 1;">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; color: #1F2937;">Ads Chargeback</h1>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #9CA3AF; font-weight: 500; letter-spacing: 0.3px;">Track, Allocate, Bill</p>
+      </div>
+      <button class="btn" onclick="openSettings()" style="padding: 8px 14px; font-size: 13px;">⚙️ Settings</button>
+    </div>
+    <div class="controls">
+      <div class="control-group">
+        <label>Start date</label>
+        <input type="date" id="startDate" value="2026-03-01">
+      </div>
+      <div class="control-group">
+        <label>End date</label>
+        <input type="date" id="endDate" value="2026-03-31">
+      </div>
+      <div class="control-group">
+        <label>Company</label>
+        <select id="companyFilter" onchange="handleCompanyFilter(this.value)">
+          <option value="">All companies</option>
+          <option value="Company A">Company A</option>
+          <option value="Company B">Company B</option>
+          <option value="Unassigned">Unassigned</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label style="visibility: hidden;">-</label>
+        <div class="buttons">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="groupToggle" onchange="toggleGrouping()"> Group by company
+          </label>
+        </div>
+      </div>
+      <div class="control-group">
+        <label style="visibility: hidden;">-</label>
+        <div class="buttons">
+          <button class="btn btn-primary" onclick="generateChargeback()">Generate chargeback</button>
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+  <div id="alertsContainer" class="alerts"></div>
+
+  <div id="companyPanel" class="company-panel" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="company-panel-header" id="companyName"></div>
+      <div id="ratesSummary" style="font-size: 12px; color: #6B7280; background: #F9FAFB; padding: 10px 12px; border-radius: 6px; border: 0.5px solid #E5E7EB; cursor: pointer;" onclick="editCompanyRates()"></div>
+    </div>
+    <div id="ratesEditPanel" class="company-panel-controls" style="display: none;">
+      <div class="form-field">
+        <label>Withholding tax (%)</label>
+        <input type="number" id="editWithholdingTax" step="0.1" min="0" max="100" placeholder="5">
+      </div>
+      <div class="form-field">
+        <label>Management fee (%)</label>
+        <input type="number" id="editManagementFee" step="0.1" min="0" max="100" placeholder="20">
+      </div>
+      <div class="form-field">
+        <label>SST (%)</label>
+        <input type="number" id="editSST" step="0.1" min="0" max="100" placeholder="8">
+      </div>
+    </div>
+    <div id="ratesButtonPanel" style="display: none; gap: 8px; margin-top: 1rem; flex-direction: row; justify-content: flex-end;">
+      <button class="btn" onclick="cancelEditRates()" style="flex: 1;">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCompanyRates()" style="flex: 1;">Save rates</button>
+    </div>
+  </div>
+
+  <div class="table-wrapper" id="tableWrapper" style="display: none;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Campaign</th>
+          <th style="text-align: right;">Base cost (RM)</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="summary-panel" id="summaryPanel" style="display: none;">
+    <div class="summary-card">
+      <div class="summary-card-label">Total base cost (RM)</div>
+      <div class="summary-card-value" id="totalBaseCost">0.00</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Total withholding tax (RM)</div>
+      <div class="summary-card-value" id="totalWithholdingTax">0.00</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">Total management fee (RM)</div>
+      <div class="summary-card-value" id="totalManagementFee">0.00</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">SST (RM)</div>
+      <div class="summary-card-value" id="totalSST">0.00</div>
+    </div>
+    <div class="summary-card" style="grid-column: 1 / -1; background: #4F8FF7; border-color: #4F8FF7;">
+      <div class="summary-card-label" style="color: rgba(255,255,255,0.8);">Grand total (RM)</div>
+      <div class="summary-card-value" id="grandTotal" style="color: white;">0.00</div>
+    </div>
+  </div>
+
+  <div class="actions" id="actionsPanel" style="display: none;">
+    <button class="btn btn-primary" onclick="generateInvoice()">Generate invoice by company</button>
+    <button class="btn" onclick="saveDraft()">Save draft</button>
+    <button class="btn" onclick="finalize()">Finalize & lock</button>
+  </div>
+</div>
+
+<div id="invoiceModal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 class="modal-title">Invoice preview</h2>
+    <div class="modal-section">
+      <div class="modal-label">Company</div>
+      <div class="modal-value" id="invoiceCompany"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Billing period</div>
+      <div class="modal-value" id="invoicePeriod"></div>
+    </div>
+    <div class="modal-breakdown" id="invoiceBreakdown"></div>
+    <div class="modal-buttons">
+      <button class="btn" onclick="exportPDF()">Export PDF</button>
+      <button class="btn btn-primary" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal" class="settings-modal">
+  <div class="settings-content">
+    <div class="settings-header">
+      <h2>Global settings</h2>
+      <button class="settings-close" onclick="closeSettings()">&times;</button>
+    </div>
+    
+    <div class="settings-section">
+      <h3>Company rates</h3>
+      <div style="padding: 12px; background: #F9FAFB; border-radius: 8px; font-size: 13px; color: #6B7280; margin-bottom: 1rem;">
+        <p style="margin: 0 0 8px 0;"><strong style="color: #1F2937;">Set rates for each company.</strong></p>
+        <p style="margin: 0;">Auto-populated from Google Ads labels. Rates apply to all campaigns under each company.</p>
+      </div>
+      <div id="companyDefaultsList" style="display: grid; gap: 12px;"></div>
+    </div>
+
+    <div class="settings-buttons">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const mockData = [
+  { id: 1, company: 'Company A', campaign: 'Campaign 1', baseCost: 120, withholdingTax: 6, managementFee: 24, sst: 8, adjustment: 0, _customized: false },
+  { id: 2, company: 'Company A', campaign: 'Campaign 2', baseCost: 80, withholdingTax: 4, managementFee: 16, sst: 8, adjustment: 0, _customized: false },
+  { id: 3, company: 'Company B', campaign: 'Campaign 3', baseCost: 200, withholdingTax: 10, managementFee: 50, sst: 8, adjustment: 5, _customized: false },
+  { id: 4, company: null, campaign: 'Campaign 4', baseCost: 150, withholdingTax: 7.5, managementFee: 30, sst: 0, adjustment: 0, _customized: false },
+  { id: 5, company: 'Company B', campaign: 'Campaign 5', baseCost: 95, withholdingTax: 4.75, managementFee: 23.75, sst: 8, adjustment: 0, _customized: false }
+];
+
+let data = JSON.parse(JSON.stringify(mockData));
+let selectedCompany = null;
+
+function formatCurrency(value) {
+  return parseFloat(value).toFixed(2);
+}
+
+function calculateRow(row) {
+  const rates = globalSettings.companies[row.company] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+  const withholdingTax = (row.baseCost * rates.withholdingTax) / 100;
+  const managementFee = (row.baseCost * rates.managementFee) / 100;
+  const sst = (row.baseCost * rates.sst) / 100;
+  const total = row.baseCost + withholdingTax + managementFee + sst + row.adjustment;
+  return { 
+    withholdingTax: parseFloat(withholdingTax.toFixed(2)), 
+    managementFee: parseFloat(managementFee.toFixed(2)),
+    sst: parseFloat(sst.toFixed(2)), 
+    total: parseFloat(total.toFixed(2)) 
+  };
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  
+  let groupedData = data;
+  if (document.getElementById('groupToggle').checked) {
+    groupedData = [];
+    const grouped = {};
+    data.forEach(row => {
+      const company = row.company || 'Unassigned';
+      if (!grouped[company]) grouped[company] = [];
+      grouped[company].push(row);
+    });
+    Object.keys(grouped).forEach(company => {
+      grouped[company].forEach(row => groupedData.push(row));
+    });
+  }
+
+  groupedData.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color: ${row.company ? '#1F2937' : '#991B1B'}; font-weight: 500;">
+        ${row.campaign}
+      </td>
+      <td class="currency">${formatCurrency(row.baseCost)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  updateSummary();
+}
+
+function updateCell(id, field, value) {
+  const row = data.find(r => r.id === id);
+  if (row) {
+    row[field] = parseFloat(value) || 0;
+    row[`_edited_${field}`] = true;
+    row._customized = true;
+    renderTable();
+  }
+}
+
+function updateSummary() {
+  let totalBase = 0, totalWithholdingTax = 0, totalManagementFee = 0, totalSST = 0, totalCharge = 0;
+  const companies = [...new Set(data.filter(r => r.company).map(r => r.company))];
+  
+  data.forEach(row => {
+    totalBase += row.baseCost;
+  });
+  
+  companies.forEach(company => {
+    const rates = globalSettings.companies[company] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+    const companyBase = data.filter(r => r.company === company).reduce((sum, r) => sum + r.baseCost, 0);
+    
+    totalWithholdingTax += (companyBase * rates.withholdingTax) / 100;
+    totalManagementFee += (companyBase * rates.managementFee) / 100;
+    totalSST += (companyBase * rates.sst) / 100;
+  });
+  
+  totalCharge = totalBase + totalWithholdingTax + totalManagementFee + totalSST;
+  
+  document.getElementById('totalBaseCost').textContent = formatCurrency(totalBase);
+  document.getElementById('totalWithholdingTax').textContent = formatCurrency(totalWithholdingTax);
+  document.getElementById('totalManagementFee').textContent = formatCurrency(totalManagementFee);
+  document.getElementById('totalSST').textContent = formatCurrency(totalSST);
+  document.getElementById('grandTotal').textContent = formatCurrency(totalCharge);
+  
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const container = document.getElementById('alertsContainer');
+  const unassigned = data.filter(r => !r.company).reduce((sum, r) => sum + r.baseCost, 0);
+  const unassignedCount = data.filter(r => !r.company).length;
+  
+  let alerts = [];
+  if (unassigned > 0) alerts.push(`RM${formatCurrency(unassigned)} spend not assigned to any company`);
+  if (unassignedCount > 0) alerts.push(`${unassignedCount} campaigns missing company assignment`);
+  
+  container.innerHTML = alerts.map(msg => `<div class="alert"><span class="alert-icon">⚠</span> ${msg}</div>`).join('');
+}
+
+function handleCompanyFilter(company) {
+  try {
+    selectedCompany = company || null;
+    const companyPanel = document.getElementById('companyPanel');
+    const companyName = document.getElementById('companyName');
+    const ratesSummary = document.getElementById('ratesSummary');
+    const ratesEditPanel = document.getElementById('ratesEditPanel');
+    const ratesButtonPanel = document.getElementById('ratesButtonPanel');
+    
+    if (!companyPanel) return;
+    
+    if (company && company !== 'Unassigned') {
+      companyPanel.classList.add('active');
+      if (companyName) companyName.textContent = company;
+      const rates = globalSettings.companies[company] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+      
+      if (ratesSummary) {
+        ratesSummary.innerHTML = `
+          <div style="line-height: 1.6;">
+            <span style="color: #1F2937;"><strong>WT: ${rates.withholdingTax}%</strong> | <strong>MF: ${rates.managementFee}%</strong> | <strong>SST: ${rates.sst}%</strong></span>
+          </div>
+        `;
+        ratesSummary.style.display = 'block';
+      }
+      
+      if (ratesEditPanel) ratesEditPanel.style.display = 'none';
+      if (ratesButtonPanel) ratesButtonPanel.style.display = 'none';
+    } else {
+      companyPanel.classList.remove('active');
+    }
+  } catch(e) {
+    console.error('Error in handleCompanyFilter:', e);
+  }
+}
+
+function editCompanyRates() {
+  if (!selectedCompany) return;
+  const rates = globalSettings.companies[selectedCompany] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+  
+  document.getElementById('editWithholdingTax').value = rates.withholdingTax;
+  document.getElementById('editManagementFee').value = rates.managementFee;
+  document.getElementById('editSST').value = rates.sst;
+  
+  const ratesSummary = document.getElementById('ratesSummary');
+  const ratesEditPanel = document.getElementById('ratesEditPanel');
+  const ratesButtonPanel = document.getElementById('ratesButtonPanel');
+  
+  if (ratesSummary) ratesSummary.style.display = 'none';
+  if (ratesEditPanel) ratesEditPanel.style.display = 'grid';
+  if (ratesButtonPanel) {
+    ratesButtonPanel.style.display = 'flex';
+    ratesButtonPanel.style.flexDirection = 'row';
+  }
+}
+
+function cancelEditRates() {
+  const ratesSummary = document.getElementById('ratesSummary');
+  const ratesEditPanel = document.getElementById('ratesEditPanel');
+  const ratesButtonPanel = document.getElementById('ratesButtonPanel');
+  
+  if (ratesEditPanel) ratesEditPanel.style.display = 'none';
+  if (ratesButtonPanel) ratesButtonPanel.style.display = 'none';
+  if (ratesSummary) ratesSummary.style.display = 'block';
+}
+
+function saveCompanyRates() {
+  if (!selectedCompany) return;
+  
+  const withholdingTax = parseFloat(document.getElementById('editWithholdingTax').value) || 5;
+  const managementFee = parseFloat(document.getElementById('editManagementFee').value) || 20;
+  const sst = parseFloat(document.getElementById('editSST').value) || 8;
+  
+  globalSettings.companies[selectedCompany] = { withholdingTax, managementFee, sst };
+  localStorage.setItem('adsChargebackSettings', JSON.stringify(globalSettings));
+  
+  applyGlobalSettings();
+  updateSummary();
+  handleCompanyFilter(selectedCompany);
+  
+  alert('Rates saved successfully');
+}
+
+function toggleGrouping() {
+  renderTable();
+}
+
+function generateChargeback() {
+  document.getElementById('instructionsPanel').style.display = 'none';
+  document.getElementById('rateStatusPanel').style.display = 'none';
+  document.getElementById('tableWrapper').style.display = 'block';
+  document.getElementById('summaryPanel').style.display = 'grid';
+  document.getElementById('actionsPanel').style.display = 'flex';
+  document.getElementById('companyPanel').style.display = 'block';
+  alert('Chargeback generated. Data ready for review.');
+}
+
+function exportCSV() {
+  let csv = 'Company,Campaign,Base Cost (RM),Withholding Tax (RM),Management Fee (RM),SST %,SST (RM),Adjustment (RM),Total Charge (RM)\n';
+  data.forEach(row => {
+    const calc = calculateRow(row);
+    csv += `"${row.company || 'Unassigned'}","${row.campaign}",${row.baseCost},${calc.withholdingTax},${calc.managementFee},${row.sst},${calc.sst},${row.adjustment},${calc.total}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'chargeback.csv';
+  a.click();
+}
+
+function generateInvoice() {
+  if (!selectedCompany || selectedCompany === 'Unassigned') {
+    alert('Please select a company first');
+    return;
+  }
+  
+  const companyData = data.filter(r => r.company === selectedCompany);
+  let totalBase = 0, totalWithholdingTax = 0, totalManagementFee = 0, totalSST = 0, totalCharge = 0;
+  companyData.forEach(row => {
+    const calc = calculateRow(row);
+    totalBase += row.baseCost;
+    totalWithholdingTax += calc.withholdingTax;
+    totalManagementFee += calc.managementFee;
+    totalSST += calc.sst;
+    totalCharge += calc.total;
+  });
+  
+  document.getElementById('invoiceCompany').textContent = selectedCompany;
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+  document.getElementById('invoicePeriod').textContent = `${start} to ${end}`;
+  
+  document.getElementById('invoiceBreakdown').innerHTML = `
+    <div class="modal-row">
+      <span>Ads spend</span>
+      <span>RM${formatCurrency(totalBase)}</span>
+    </div>
+    <div class="modal-row">
+      <span>Withholding tax</span>
+      <span>RM${formatCurrency(totalWithholdingTax)}</span>
+    </div>
+    <div class="modal-row">
+      <span>Management fee</span>
+      <span>RM${formatCurrency(totalManagementFee)}</span>
+    </div>
+    <div class="modal-row">
+      <span>SST</span>
+      <span>RM${formatCurrency(totalSST)}</span>
+    </div>
+    <div class="modal-row total">
+      <span>TOTAL</span>
+      <span>RM${formatCurrency(totalCharge)}</span>
+    </div>
+  `;
+  
+  document.getElementById('invoiceModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('invoiceModal').classList.remove('active');
+}
+
+function exportPDF() {
+  alert('Invoice exported as PDF');
+}
+
+function saveDraft() {
+  alert('Draft saved to database');
+}
+
+function finalize() {
+  alert('Chargeback finalized and locked. No further edits allowed.');
+}
+
+let globalSettings = {
+  companies: {}
+};
+
+function loadSettings() {
+  const saved = localStorage.getItem('adsChargebackSettings');
+  if (saved) {
+    globalSettings = JSON.parse(saved);
+  }
+  
+  const companies = [...new Set(data.filter(r => r.company).map(r => r.company))];
+  
+  companies.forEach(company => {
+    if (!globalSettings.companies[company]) {
+      globalSettings.companies[company] = {
+        withholdingTax: 5,
+        managementFee: 20,
+        sst: 8
+      };
+    }
+  });
+  
+  renderCompanyDefaults();
+}
+
+function renderCompanyDefaults() {
+  const companies = [...new Set(data.filter(r => r.company).map(r => r.company))];
+  const container = document.getElementById('companyDefaultsList');
+  
+  container.innerHTML = companies.map((company, idx) => {
+    const rates = globalSettings.companies[company] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+    return `
+      <div style="padding: 16px; background: white; border: 0.5px solid #E5E7EB; border-radius: 8px;">
+        <div style="font-weight: 600; color: #1F2937; margin-bottom: 12px; font-size: 13px;">${company}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+          <div class="settings-field">
+            <label>Withholding tax (%)</label>
+            <input type="number" id="wt-${idx}" step="0.1" min="0" max="100" value="${rates.withholdingTax}" placeholder="5">
+          </div>
+          <div class="settings-field">
+            <label>Management fee (%)</label>
+            <input type="number" id="mf-${idx}" step="0.1" min="0" max="100" value="${rates.managementFee}" placeholder="20">
+          </div>
+          <div class="settings-field">
+            <label>SST (%)</label>
+            <input type="number" id="sst-${idx}" step="0.1" min="0" max="100" value="${rates.sst}" placeholder="8">
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openSettings() {
+  loadSettings();
+  document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('active');
+}
+
+function saveSettings() {
+  const companies = [...new Set(data.filter(r => r.company).map(r => r.company))];
+  
+  console.log('Saving settings for companies:', companies);
+  
+  companies.forEach((company, idx) => {
+    const wtInput = document.getElementById(`wt-${idx}`);
+    const mfInput = document.getElementById(`mf-${idx}`);
+    const sstInput = document.getElementById(`sst-${idx}`);
+    
+    console.log(`Company ${company} (idx ${idx}):`, {
+      wtInput: wtInput ? wtInput.value : 'NOT FOUND',
+      mfInput: mfInput ? mfInput.value : 'NOT FOUND',
+      sstInput: sstInput ? sstInput.value : 'NOT FOUND'
+    });
+    
+    if (wtInput && mfInput && sstInput) {
+      globalSettings.companies[company] = {
+        withholdingTax: parseFloat(wtInput.value) || 5,
+        managementFee: parseFloat(mfInput.value) || 20,
+        sst: parseFloat(sstInput.value) || 8
+      };
+      console.log(`Saved ${company}:`, globalSettings.companies[company]);
+    }
+  });
+  
+  console.log('Final globalSettings:', globalSettings);
+  localStorage.setItem('adsChargebackSettings', JSON.stringify(globalSettings));
+  
+  applyGlobalSettings();
+  updateSummary();
+  closeSettings();
+  alert('Settings saved successfully');
+}
+
+function applyGlobalSettings() {
+  data.forEach(row => {
+    if (!row._customized && row.company) {
+      const rates = globalSettings.companies[row.company] || { withholdingTax: 5, managementFee: 20, sst: 8 };
+      row.withholdingTax = (row.baseCost * rates.withholdingTax) / 100;
+      row.managementFee = (row.baseCost * rates.managementFee) / 100;
+      row.sst = rates.sst;
+    }
+  });
+  renderTable();
+}
+
+renderTable();
+loadSettings();
+applyGlobalSettings();
+</script>
+</body>
+</html>
