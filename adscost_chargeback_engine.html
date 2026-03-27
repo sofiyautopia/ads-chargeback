@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AdsCost - Chargeback Engine</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -261,6 +262,7 @@
         <h1 style="margin: 0; font-size: 26px; font-weight: 600; color: #1F2937;">Ads Chargeback</h1>
         <p style="margin: 4px 0 0 0; font-size: 12px; color: #9CA3AF; font-weight: 500; letter-spacing: 0.3px;">Track, Allocate, Bill</p>
       </div>
+      <button onclick="signInWithGoogle()" style="padding: 10px 18px; background: #4285F4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px;">📱 Google Ads</button>
       <button class="btn" onclick="openSettings()" style="padding: 8px 14px; font-size: 13px;">⚙️ Settings</button>
     </div>
     <div class="controls">
@@ -610,13 +612,17 @@ function toggleGrouping() {
 }
 
 function generateChargeback() {
-  document.getElementById('instructionsPanel').style.display = 'none';
-  document.getElementById('rateStatusPanel').style.display = 'none';
-  document.getElementById('tableWrapper').style.display = 'block';
-  document.getElementById('summaryPanel').style.display = 'grid';
-  document.getElementById('actionsPanel').style.display = 'flex';
-  document.getElementById('companyPanel').style.display = 'block';
-  alert('Chargeback generated. Data ready for review.');
+  fetchCampaignsFromGoogleAds();
+  
+  // After data loads, show panels
+  setTimeout(() => {
+    document.getElementById('instructionsPanel').style.display = 'none';
+    document.getElementById('rateStatusPanel').style.display = 'none';
+    document.getElementById('tableWrapper').style.display = 'block';
+    document.getElementById('summaryPanel').style.display = 'grid';
+    document.getElementById('actionsPanel').style.display = 'flex';
+    document.getElementById('companyPanel').style.display = 'block';
+  }, 500);
 }
 
 function exportCSV() {
@@ -703,6 +709,80 @@ let globalSettings = {
 
 // Production Backend URL
 const API_BASE_URL = 'https://ads-chargeback-production.up.railway.app/api';
+
+// ============================================
+// GOOGLE ADS OAUTH
+// ============================================
+let googleAccessToken = null;
+
+function signInWithGoogle() {
+  google.accounts.id.initialize({
+    client_id: '1015904536040-kqi7u5s631pm7a01v7gmctrskr8l9o0t.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/adwords',
+    callback: handleCredentialResponse
+  });
+  
+  google.accounts.id.renderButton(
+    document.querySelector('button[onclick="signInWithGoogle()"]'),
+    { theme: 'outline', size: 'large' }
+  );
+  
+  google.accounts.id.prompt((notification) => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      console.log('Google Sign-In prompt ready');
+    }
+  });
+}
+
+function handleCredentialResponse(response) {
+  googleAccessToken = response.credential;
+  alert('✅ Signed in with Google! Click "Generate chargeback" to load your real campaigns.');
+  console.log('Google token received');
+}
+
+async function fetchCampaignsFromGoogleAds() {
+  if (!googleAccessToken) {
+    alert('❌ Please sign in with Google first');
+    return;
+  }
+
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const customerId = prompt('Enter your Google Ads Customer ID (format: 123-456-7890):');
+
+  if (!customerId) return;
+
+  try {
+    const response = await fetch(API_BASE_URL + '/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerId,
+        startDate,
+        endDate,
+        googleAccessToken
+      })
+    });
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert('❌ Error: ' + (result.error || 'Failed to fetch campaigns'));
+      console.error('API Error:', result.error);
+      return;
+    }
+
+    // Load real data
+    data = result.data;
+    renderTable();
+    updateSummary();
+    
+    alert(`✅ Loaded ${result.total} campaigns from Google Ads!\nTotal cost: RM${result.totalCost.toFixed(2)}`);
+  } catch (error) {
+    console.error('Error:', error);
+    alert('❌ Failed to fetch campaigns: ' + error.message);
+  }
+}
 
 function loadSettings() {
   const saved = localStorage.getItem('adsChargebackSettings');
