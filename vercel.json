@@ -1,5 +1,11 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
-  "installCommand": ""
+  "installCommand": "",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/adscost_chargeback_engine.html"
+    }
+  ]
 }
