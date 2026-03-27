@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/adscost_chargeback_engine.html"
+    }
+  ]
+}
