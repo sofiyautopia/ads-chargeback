@@ -701,6 +701,9 @@ let globalSettings = {
   companies: {}
 };
 
+// Production Backend URL
+const API_BASE_URL = 'https://ads-chargeback-production.up.railway.app/api';
+
 function loadSettings() {
   const saved = localStorage.getItem('adsChargebackSettings');
   if (saved) {
