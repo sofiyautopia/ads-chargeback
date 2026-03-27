@@ -1,8 +1,5 @@
 {
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/adscost_chargeback_engine.html"
-    }
-  ]
+  "buildCommand": "echo 'Building'",
+  "outputDirectory": "public",
+  "cleanUrls": true
 }
